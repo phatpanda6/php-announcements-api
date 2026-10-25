@@ -11,10 +11,11 @@ This is a work in progress, not production-ready school software. It contains no
 - Malformed JSON receives `400`.
 - Missing, non-string or whitespace-only title/body values receive `422`.
 - Unsupported HTTP methods receive `405` with `Allow: GET, POST`.
+- `php database.php` opens a local SQLite database, creates the announcements table if needed, and lists saved rows through `AnnouncementRepository::findAll()`. This script is separate from the HTTP API.
 
 ## Run locally
 
-Requires PHP with its command-line interpreter. Development so far has used PHP 8.5.12. No framework, Composer packages or database are currently required.
+Requires PHP with its command-line interpreter and PDO SQLite support. Development so far has used PHP 8.5.12. No framework or Composer packages are required.
 
 From the repository folder:
 
@@ -26,6 +27,16 @@ php -S localhost:8000
 Leave that terminal running. Open `http://localhost:8000/hello.php` in a browser, or use the requests below from a second terminal. Stop the server with Control+C.
 
 PHP's built-in server is used only for local development.
+
+### SQLite practice script
+
+From the repository folder, run:
+
+```sh
+php database.php
+```
+
+This creates `announcements.sqlite` and the announcements table if absent, then prints the saved rows as JSON. A fresh database returns `[]`; the script does not insert seed data. Local database files and their supporting files are excluded from Git through `.gitignore`. No web server is needed for this script.
 
 ## Example requests
 
@@ -78,6 +89,7 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 - One request-handling file keeps the initial request/response flow visible while learning the language.
 - `AnnouncementValidator.php` defines a small class whose public `isNonEmptyString()` method applies the same validation rule to both fields. It checks the type before calling `trim()`. This stateless helper could also be a standalone function; the class introduces object creation and method calls as a learning step.
 - The API and validation tests load the same class using `require_once` and create their own validator objects.
+- `AnnouncementRepository` receives a PDO connection through its constructor and owns the SQL for retrieving announcements. The practice script handles connection setup, table creation and output.
 - JSON decoding converts request text into PHP data; JSON encoding converts response data back into text.
 - The response explicitly selects title and body rather than echoing all submitted fields.
 - Malformed JSON and invalid field values use separate status codes: `400` and `422`.
@@ -86,6 +98,8 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 
 Manual curl checks have covered GET, valid POST, malformed JSON, unsupported methods, numeric titles, blank bodies and whitespace trimming. Three automated validation checks cover a non-empty string, whitespace-only input and a numeric value. Run them with `php validation.test.php`.
 
-There is currently no database, persistence, update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
+The SQLite practice script has been manually checked to retrieve a previously inserted synthetic row. There are no automated repository tests yet.
 
-The next learning step is a repository class using SQLite/PDO for persisted create-and-list behaviour. Database persistence is planned, not implemented; update/delete are optional if time permits.
+SQLite reading is implemented in a standalone practice script. The HTTP API is not yet connected to the database: GET remains hard-coded, and POST validates and returns data without saving it. There is no update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
+
+The next learning steps are a parameterised repository create method, connecting the API to SQLite, and adding database tests. These are planned, not implemented; update/delete are optional if time permits.
