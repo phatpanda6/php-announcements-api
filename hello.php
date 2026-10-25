@@ -1,6 +1,9 @@
 <?php
+require_once __DIR__ . "/database-connection.php";
+require_once __DIR__ . "/AnnouncementRepository.php";
 require_once __DIR__ . "/AnnouncementValidator.php";
 
+$repository = new AnnouncementRepository($database);
 $validator = new AnnouncementValidator();
 
 header("Content-Type: application/json");
@@ -30,6 +33,12 @@ if ($method === "POST") {
         "title" => trim($title),
         "body" => trim($body),
     ];
+    $repository->create(
+        $validatedAnnouncement["title"],
+        $validatedAnnouncement["body"]
+    );
+
+    http_response_code(201);
     echo json_encode($validatedAnnouncement) . PHP_EOL;
     exit;
 }
@@ -41,16 +50,7 @@ if ($method !== "GET") {
     exit;
 }
 
-$announcements = [
-    [
-        "title" => "Sports day",
-        "body" => "Bring your runners."
-    ],
-    [
-        "title" => "Lunch time",
-        "body" => "Time to eat!"
-    ]
-];
+$announcements = $repository->findAll();
 
 
 echo json_encode($announcements) . PHP_EOL;

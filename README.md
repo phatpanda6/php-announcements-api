@@ -6,13 +6,13 @@ This is a work in progress, not production-ready school software. It contains no
 
 ## Current behaviour
 
-- `GET /hello.php` returns a hard-coded list of announcements as JSON.
-- `POST /hello.php` reads JSON, validates the title and body, trims surrounding whitespace and returns those two fields. **It does not create or save an announcement.**
+- `GET /hello.php` returns saved announcements from SQLite as JSON, including their IDs, ordered by ID. An empty database returns `[]`.
+- `POST /hello.php` reads JSON, validates the title and body, trims surrounding whitespace, saves an announcement to SQLite and returns the cleaned title and body with `201 Created`. The POST response currently does not include the assigned ID.
 - Malformed JSON receives `400`.
 - Missing, non-string or whitespace-only title/body values receive `422`.
 - Unsupported HTTP methods receive `405` with `Allow: GET, POST`.
 - `php database.php` opens a local SQLite database, creates the announcements table if needed, and lists saved rows through `AnnouncementRepository::findAll()`. This script is separate from the HTTP API.
-- The repository also provides `create()` to insert an announcement using named placeholders and separately supplied values. Automated repository tests exercise creation and retrieval; the HTTP API does not call the repository yet.
+- The API uses the repository's `create()` and `findAll()` methods for persistence. Inserts use named placeholders and separately supplied values.
 
 ## Run locally
 
@@ -28,6 +28,8 @@ php -S localhost:8000
 Leave that terminal running. Open `http://localhost:8000/hello.php` in a browser, or use the requests below from a second terminal. Stop the server with Control+C.
 
 PHP's built-in server is used only for local development.
+
+The API automatically creates the local `announcements.sqlite` database and announcements table on first use. It does not seed announcements. Each successful POST adds a row; rows remain across requests and server restarts. Database files and their supporting files are excluded from Git through `.gitignore`.
 
 ### SQLite practice script
 
@@ -47,7 +49,7 @@ List the synthetic announcements:
 curl -i http://localhost:8000/hello.php
 ```
 
-Validate and return a submitted announcement:
+Create a saved announcement:
 
 ```sh
 curl -i -X POST http://localhost:8000/hello.php \
@@ -55,11 +57,13 @@ curl -i -X POST http://localhost:8000/hello.php \
   -d '{"title":"Music club","body":"Meet after school.   "}'
 ```
 
-Expected status: `200`. Response body:
+Expected status: `201 Created`. Response body:
 
 ```json
 {"title":"Music club","body":"Meet after school."}
 ```
+
+Run the GET request again to retrieve the saved announcement with its assigned `id`. Repeating the POST creates another row.
 
 Reject a numeric title:
 
@@ -90,7 +94,8 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 - One request-handling file keeps the initial request/response flow visible while learning the language.
 - `AnnouncementValidator.php` defines a small class whose public `isNonEmptyString()` method applies the same validation rule to both fields. It checks the type before calling `trim()`. This stateless helper could also be a standalone function; the class introduces object creation and method calls as a learning step.
 - The API and validation tests load the same class using `require_once` and create their own validator objects.
-- `AnnouncementRepository` receives a PDO connection through its constructor and owns the SQL for inserting and retrieving announcements. Inserts use `prepare()` and `execute()` with named placeholders, keeping values separate from SQL instructions. The practice script handles connection setup, table creation and output.
+- `AnnouncementRepository` receives a PDO connection through its constructor and owns the SQL for inserting and retrieving announcements. Inserts use `prepare()` and `execute()` with named placeholders, keeping values separate from SQL instructions.
+- `database-connection.php` provides shared connection and table setup without output. Both the API and the listing practice script load it; each caller controls its own response or output.
 - JSON decoding converts request text into PHP data; JSON encoding converts response data back into text.
 - The response explicitly selects title and body rather than echoing all submitted fields.
 - Malformed JSON and invalid field values use separate status codes: `400` and `422`.
@@ -110,6 +115,8 @@ php repository.test.php
 
 Each script prints three PASS messages and exits with code `0` when its checks succeed; a failed check exits with code `1`.
 
-SQLite creation and retrieval are implemented in the repository, with a standalone practice script for listing saved rows. The HTTP API is not yet connected to the database: GET remains hard-coded, and POST validates and returns data without saving it. There is no update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
+The persisted POST-then-GET flow has been manually checked, and a read-only database check confirmed the synthetic announcement was stored with trimmed values. Automated tests cover the validator and repository, not the complete HTTP flow.
 
-The next learning steps are connecting the API to SQLite and verifying the persisted create-and-list HTTP flow. These are planned, not implemented; update/delete are optional if time permits.
+There is no update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits, request-size limits and controlled JSON responses for unexpected server/database errors. These boundaries matter before considering broader use.
+
+The core learning scope is persisted create-and-list behaviour. Further work should prioritise request validation and unexpected-error handling; update/delete remain optional if time permits.
