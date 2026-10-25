@@ -12,6 +12,7 @@ This is a work in progress, not production-ready school software. It contains no
 - Missing, non-string or whitespace-only title/body values receive `422`.
 - Unsupported HTTP methods receive `405` with `Allow: GET, POST`.
 - `php database.php` opens a local SQLite database, creates the announcements table if needed, and lists saved rows through `AnnouncementRepository::findAll()`. This script is separate from the HTTP API.
+- The repository also provides `create()` to insert an announcement using named placeholders and separately supplied values. Automated repository tests exercise creation and retrieval; the HTTP API does not call the repository yet.
 
 ## Run locally
 
@@ -89,7 +90,7 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 - One request-handling file keeps the initial request/response flow visible while learning the language.
 - `AnnouncementValidator.php` defines a small class whose public `isNonEmptyString()` method applies the same validation rule to both fields. It checks the type before calling `trim()`. This stateless helper could also be a standalone function; the class introduces object creation and method calls as a learning step.
 - The API and validation tests load the same class using `require_once` and create their own validator objects.
-- `AnnouncementRepository` receives a PDO connection through its constructor and owns the SQL for retrieving announcements. The practice script handles connection setup, table creation and output.
+- `AnnouncementRepository` receives a PDO connection through its constructor and owns the SQL for inserting and retrieving announcements. Inserts use `prepare()` and `execute()` with named placeholders, keeping values separate from SQL instructions. The practice script handles connection setup, table creation and output.
 - JSON decoding converts request text into PHP data; JSON encoding converts response data back into text.
 - The response explicitly selects title and body rather than echoing all submitted fields.
 - Malformed JSON and invalid field values use separate status codes: `400` and `422`.
@@ -98,8 +99,17 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 
 Manual curl checks have covered GET, valid POST, malformed JSON, unsupported methods, numeric titles, blank bodies and whitespace trimming. Three automated validation checks cover a non-empty string, whitespace-only input and a numeric value. Run them with `php validation.test.php`.
 
-The SQLite practice script has been manually checked to retrieve a previously inserted synthetic row. There are no automated repository tests yet.
+The SQLite practice script has been manually checked to retrieve a previously inserted synthetic row. Three automated repository checks cover an empty database, creating and retrieving an announcement, and preserving apostrophes in saved text. Each test-script run uses a fresh in-memory SQLite database, leaving the local database file untouched.
 
-SQLite reading is implemented in a standalone practice script. The HTTP API is not yet connected to the database: GET remains hard-coded, and POST validates and returns data without saving it. There is no update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
+Run both test scripts from the repository folder:
 
-The next learning steps are a parameterised repository create method, connecting the API to SQLite, and adding database tests. These are planned, not implemented; update/delete are optional if time permits.
+```sh
+php validation.test.php
+php repository.test.php
+```
+
+Each script prints three PASS messages and exits with code `0` when its checks succeed; a failed check exits with code `1`.
+
+SQLite creation and retrieval are implemented in the repository, with a standalone practice script for listing saved rows. The HTTP API is not yet connected to the database: GET remains hard-coded, and POST validates and returns data without saving it. There is no update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
+
+The next learning steps are connecting the API to SQLite and verifying the persisted create-and-list HTTP flow. These are planned, not implemented; update/delete are optional if time permits.
