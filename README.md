@@ -83,8 +83,8 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 
 ## Verification and limitations
 
-Manual curl checks have covered GET, valid POST, malformed JSON, unsupported methods, numeric titles, blank bodies and whitespace trimming. There is no automated test suite yet.
+Manual curl checks have covered GET, valid POST, malformed JSON, unsupported methods, numeric titles, blank bodies and whitespace trimming. Three automated validation checks cover a non-empty string, whitespace-only input and a numeric value. Run them with `php validation.test.php`.
 
 There are currently no classes, database, persistence, update/delete operations, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
 
-The next learning steps are automated validation tests and a small object-oriented PHP structure with SQLite/PDO for persisted create-and-list behaviour. These are planned, not implemented; update/delete are optional if time permits.
+The next learning step is a small object-oriented PHP structure with SQLite/PDO for persisted create-and-list behaviour. These features are planned, not implemented; update/delete are optional if time permits.

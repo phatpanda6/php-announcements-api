@@ -1,7 +1,5 @@
 <?php
-function isNonEmptyString($value) : bool {
-    return is_string($value) && trim($value) !== "";
-}
+require_once __DIR__ . "/validation.php";
 
 header("Content-Type: application/json");
 $method = $_SERVER["REQUEST_METHOD"];
