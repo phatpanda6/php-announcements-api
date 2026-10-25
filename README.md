@@ -76,7 +76,8 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 ## Design decisions
 
 - One request-handling file keeps the initial request/response flow visible while learning the language.
-- A shared `isNonEmptyString()` function applies the same validation rule to both fields. It checks the type before calling `trim()`.
+- `AnnouncementValidator.php` defines a small class whose public `isNonEmptyString()` method applies the same validation rule to both fields. It checks the type before calling `trim()`. This stateless helper could also be a standalone function; the class introduces object creation and method calls as a learning step.
+- The API and validation tests load the same class using `require_once` and create their own validator objects.
 - JSON decoding converts request text into PHP data; JSON encoding converts response data back into text.
 - The response explicitly selects title and body rather than echoing all submitted fields.
 - Malformed JSON and invalid field values use separate status codes: `400` and `422`.
@@ -85,6 +86,6 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 
 Manual curl checks have covered GET, valid POST, malformed JSON, unsupported methods, numeric titles, blank bodies and whitespace trimming. Three automated validation checks cover a non-empty string, whitespace-only input and a numeric value. Run them with `php validation.test.php`.
 
-There are currently no classes, database, persistence, update/delete operations, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
+There is currently no database, persistence, update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits and request-size limits. These boundaries matter before considering broader use.
 
-The next learning step is a small object-oriented PHP structure with SQLite/PDO for persisted create-and-list behaviour. These features are planned, not implemented; update/delete are optional if time permits.
+The next learning step is a repository class using SQLite/PDO for persisted create-and-list behaviour. Database persistence is planned, not implemented; update/delete are optional if time permits.

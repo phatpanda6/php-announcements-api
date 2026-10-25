@@ -1,5 +1,7 @@
 <?php
-require_once __DIR__ . "/validation.php";
+require_once __DIR__ . "/AnnouncementValidator.php";
+
+$validator = new AnnouncementValidator();
 
 header("Content-Type: application/json");
 $method = $_SERVER["REQUEST_METHOD"];
@@ -13,13 +15,13 @@ if ($method === "POST") {
         exit;
     }
     $title = $data["title"] ?? null;
-    if (!isNonEmptyString($title)) {
+    if (!$validator->isNonEmptyString($title)) {
         http_response_code(422);
         echo json_encode(["error" => "Title must be a non-empty string"]);
         exit;
     }
     $body = $data["body"] ?? null;
-    if (!isNonEmptyString($body)) {
+    if (!$validator->isNonEmptyString($body)) {
         http_response_code(422);
         echo json_encode(["error" => "Body must be a non empty string"]);
         exit;

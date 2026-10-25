@@ -1,7 +1,9 @@
 <?php
-require_once __DIR__ . "/validation.php";
+require_once __DIR__ . "/AnnouncementValidator.php";
 
-$result = isNonEmptyString("Music club");
+$validator = new AnnouncementValidator();
+
+$result = $validator->isNonEmptyString("Music club");
 
 if ($result === true) {
     echo json_encode(["PASS" => "accepts a non-empty string"]) . PHP_EOL;
@@ -10,7 +12,7 @@ if ($result === true) {
     exit(1);
 }
 
-$nonEmptyStringTest = isNonEmptyString(" ");
+$nonEmptyStringTest = $validator->isNonEmptyString(" ");
 
 if ($nonEmptyStringTest === false) {
     echo json_encode(["PASS" => "rejects whitespace-only strings"]) . PHP_EOL;
@@ -19,7 +21,7 @@ if ($nonEmptyStringTest === false) {
     exit(1);
 }
 
-$numberTest = isNonEmptyString(42);
+$numberTest = $validator->isNonEmptyString(42);
 
 if ($numberTest === false) {
     echo json_encode(["PASS" => "rejects non-string values"]) . PHP_EOL;
