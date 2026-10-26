@@ -9,8 +9,10 @@ This is a work in progress, not production-ready school software. It contains no
 - `GET /hello.php` returns saved announcements from SQLite as JSON, including their IDs, ordered by ID. An empty database returns `[]`.
 - `POST /hello.php` reads JSON, validates the title and body, trims surrounding whitespace, saves an announcement to SQLite and returns the cleaned title and body with `201 Created`. The POST response currently does not include the assigned ID.
 - Malformed JSON receives `400`.
+- Valid JSON that is not an object, such as `42`, `null` or `[]`, receives `422` with an object-shape error.
 - Missing, non-string or whitespace-only title/body values receive `422`.
 - Unsupported HTTP methods receive `405` with `Allow: GET, POST`.
+- Unexpected exceptions and errors thrown during setup or request handling are caught and return `500` with a generic JSON error, without exposing the exception message in that response.
 - `php database.php` opens a local SQLite database, creates the announcements table if needed, and lists saved rows through `AnnouncementRepository::findAll()`. This script is separate from the HTTP API.
 - The API uses the repository's `create()` and `findAll()` methods for persistence. Inserts use named placeholders and separately supplied values.
 
@@ -89,6 +91,16 @@ curl -i -X POST http://localhost:8000/hello.php \
 
 Expected status: `400`, with `{"error":"Invalid JSON"}`.
 
+Reject valid JSON with the wrong shape:
+
+```sh
+curl -i -X POST http://localhost:8000/hello.php \
+  -H 'Content-Type: application/json' \
+  -d '42'
+```
+
+Expected status: `422`, with `{"error":"Request body must be a JSON object"}`.
+
 ## Design decisions
 
 - One request-handling file keeps the initial request/response flow visible while learning the language.
@@ -97,8 +109,10 @@ Expected status: `400`, with `{"error":"Invalid JSON"}`.
 - `AnnouncementRepository` receives a PDO connection through its constructor and owns the SQL for inserting and retrieving announcements. Inserts use `prepare()` and `execute()` with named placeholders, keeping values separate from SQL instructions.
 - `database-connection.php` provides shared connection and table setup without output. Both the API and the listing practice script load it; each caller controls its own response or output.
 - JSON decoding converts request text into PHP data; JSON encoding converts response data back into text.
+- Decoding preserves JSON objects as PHP objects so the API can distinguish an announcement object from a JSON array or scalar before validating its fields.
 - The response explicitly selects title and body rather than echoing all submitted fields.
 - Malformed JSON and invalid field values use separate status codes: `400` and `422`.
+- A top-level `try`/`catch (Throwable $error)` wraps setup and request handling. Expected validation failures retain their specific responses; thrown unexpected failures receive a generic `500` JSON response.
 
 ## Verification and limitations
 
@@ -117,6 +131,8 @@ Each script prints three PASS messages and exits with code `0` when its checks s
 
 The persisted POST-then-GET flow has been manually checked, and a read-only database check confirmed the synthetic announcement was stored with trimmed values. Automated tests cover the validator and repository, not the complete HTTP flow.
 
-There is no update/delete functionality, authentication or deployment. The API also lacks explicit top-level JSON object validation, request Content-Type enforcement, field length limits, request-size limits and controlled JSON responses for unexpected server/database errors. These boundaries matter before considering broader use.
+The object-shape rejection was manually checked with a JSON number (`42`). The unexpected-error path was manually checked by temporarily throwing an exception before setup: the response was `500` with only `{"error":"Internal server error"}`. The temporary exception was removed, normal GET returned `200` again, and all six automated checks passed afterward. These HTTP error-path checks are manual, not part of the automated scripts.
 
-The core learning scope is persisted create-and-list behaviour. Further work should prioritise request validation and unexpected-error handling; update/delete remain optional if time permits.
+There is no update/delete functionality, authentication or deployment. The API also lacks request Content-Type enforcement, field length limits, request-size limits and server-side logging of caught exceptions. The error handler does not convert PHP warnings into exceptions or undo output already written before an error. These boundaries matter before considering broader use.
+
+The core learning scope is persisted create-and-list behaviour with input validation and basic unexpected-error handling. Update/delete remain optional future work.
